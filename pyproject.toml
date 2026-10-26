@@ -32,7 +32,7 @@ build-backend = "hatchling.build"
 exclude-newer = "2026-10-12T00:00:00Z"
 
 # Linux (CI) gets the CPU-only PyTorch wheel instead of the multi-gigabyte CUDA build.
-# macOS uses the default PyPI wheel, which supports both CPU and Apple MPS.
+# macOS uses the default PyPI wheel, which never bundles CUDA.
 [tool.uv.sources]
 torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
 

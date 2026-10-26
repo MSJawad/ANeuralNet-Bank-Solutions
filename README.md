@@ -153,8 +153,9 @@ its threshold, the seed, a SHA-256 of the training file and the library versions
 refuses to run against a different data file, because the test split only means something for
 the file the model was trained on.
 
-`predict` reads any CSV with the ten feature columns (extra columns such as IDs are kept in the
-output but ignored by the model) and appends `churn_probability` and `churn_predicted`:
+`predict` reads any CSV with the ten feature columns and appends `churn_probability` and
+`churn_predicted`. Extra columns such as IDs are kept in the output but ignored by the model, and
+a file with a blank feature value in any row is rejected rather than scored:
 
 ```sh
 uv run bank-churn predict --model models/gboost.joblib --input examples/customers.csv
