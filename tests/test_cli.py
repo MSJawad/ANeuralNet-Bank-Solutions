@@ -51,13 +51,11 @@ def test_evaluate_prints_table_and_writes_outputs(trained, customers_csv, tmp_pa
         + ["--plot", str(plot), "--json", str(metrics)]
     )
     out = capsys.readouterr().out
-    assert out.startswith("| Model | ROC-AUC (95% CI) |")
+    assert "| Model | ROC-AUC | 95% CI | PR-AUC | 95% CI |" in out
+    assert "| Model | Threshold | Precision | Recall | F1 | Accuracy |" in out
     rows = [line for line in out.splitlines() if line.startswith("| ") and "Model" not in line]
-    assert [row.split(" | ")[0] for row in rows] == [
-        "| Logistic regression",
-        "| Gradient boosting",
-        "| Neural network (MLP)",
-    ]
+    names = ["| Logistic regression", "| Gradient boosting", "| Neural network (MLP)"]
+    assert [row.split(" | ")[0] for row in rows] == names * 2
     assert "Test set: 120 customers" in out
     assert plot.stat().st_size > 10_000
     payload = json.loads(metrics.read_text())

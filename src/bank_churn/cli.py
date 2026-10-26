@@ -13,7 +13,7 @@ from bank_churn.experiment import (
     evaluate_on_test,
     plot_curves,
     predict,
-    results_table,
+    results_tables,
     train_model,
 )
 from bank_churn.models import MODEL_NAMES
@@ -47,7 +47,7 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
     results = evaluate_on_test(models, args.data, n_resamples=args.bootstrap)
 
     y_test = results[0].y_test
-    print(results_table(results))
+    print(results_tables(results))
     print()
     print(
         f"Test set: {len(y_test)} customers, {int(y_test.sum())} churned "

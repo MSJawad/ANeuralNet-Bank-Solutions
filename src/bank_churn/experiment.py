@@ -137,25 +137,33 @@ def evaluate_on_test(
     return results
 
 
-def results_table(results: list[TestResult]) -> str:
-    """Render test results as a Markdown table."""
-    lines = [
-        "| Model | ROC-AUC (95% CI) | PR-AUC (95% CI) | Threshold | Precision | Recall | F1 "
-        "| Accuracy |",
-        "|---|---|---|---|---|---|---|---|",
+def results_tables(results: list[TestResult]) -> str:
+    """Render test results as two Markdown tables: ranking quality, then decisions."""
+    ranking = [
+        "| Model | ROC-AUC | 95% CI | PR-AUC | 95% CI |",
+        "|---|---|---|---|---|",
+    ]
+    decisions = [
+        "| Model | Threshold | Precision | Recall | F1 | Accuracy |",
+        "|---|---|---|---|---|---|",
     ]
     for result in results:
         m = result.metrics
+        name = result.model.display_name
         roc_low, roc_high = result.roc_auc_interval
         pr_low, pr_high = result.pr_auc_interval
-        lines.append(
-            f"| {result.model.display_name} "
-            f"| {m['roc_auc']:.3f} ({roc_low:.3f}-{roc_high:.3f}) "
-            f"| {m['pr_auc']:.3f} ({pr_low:.3f}-{pr_high:.3f}) "
-            f"| {result.model.threshold:.2f} | {m['precision']:.3f} | {m['recall']:.3f} "
-            f"| {m['f1']:.3f} | {m['accuracy']:.3f} |"
+        ranking.append(
+            f"| {name} | {m['roc_auc']:.3f} | {roc_low:.3f}-{roc_high:.3f} "
+            f"| {m['pr_auc']:.3f} | {pr_low:.3f}-{pr_high:.3f} |"
         )
-    return "\n".join(lines)
+        decisions.append(
+            f"| {name} | {result.model.threshold:.2f} | {m['precision']:.3f} "
+            f"| {m['recall']:.3f} | {m['f1']:.3f} | {m['accuracy']:.3f} |"
+        )
+    return "\n".join(
+        ["Ranking quality (threshold-free):", "", *ranking, "", "At each model's threshold:", ""]
+        + decisions
+    )
 
 
 def plot_curves(results: list[TestResult], path: Path) -> None:

@@ -14,15 +14,24 @@ Held-out test set: 2,000 customers (20% of the data), of whom 407 (20.3%) churne
 set is used only for this table: models are fitted on the training split, and each decision
 threshold is chosen on a separate validation split.
 
-| Model | ROC-AUC (95% CI) | PR-AUC (95% CI) | Threshold | Precision | Recall | F1 | Accuracy |
-|---|---|---|---|---|---|---|---|
-| Logistic regression | 0.775 (0.749-0.801) | 0.481 (0.438-0.528) | 0.26 | 0.453 | 0.595 | 0.514 | 0.771 |
-| Gradient boosting | 0.866 (0.846-0.886) | 0.707 (0.670-0.744) | 0.39 | 0.695 | 0.560 | 0.620 | 0.861 |
-| Neural network (MLP) | 0.859 (0.838-0.880) | 0.698 (0.659-0.737) | 0.39 | 0.722 | 0.548 | 0.623 | 0.865 |
+How well each model ranks customers by churn risk, independent of any threshold. A random
+ranking scores ROC-AUC 0.5 and PR-AUC 0.203 (the churn rate). The intervals are 95% bootstrap
+confidence intervals over the test rows (1,000 stratified resamples).
 
-For reference: predicting that nobody churns scores accuracy 0.796, and a random ranking scores
-PR-AUC 0.203. The intervals are 95% bootstrap confidence intervals over the test rows (1,000
-stratified resamples).
+| Model | ROC-AUC | 95% CI | PR-AUC | 95% CI |
+|---|---|---|---|---|
+| Logistic regression | 0.775 | 0.749-0.801 | 0.481 | 0.438-0.528 |
+| Gradient boosting | 0.866 | 0.846-0.886 | 0.707 | 0.670-0.744 |
+| Neural network (MLP) | 0.859 | 0.838-0.880 | 0.698 | 0.659-0.737 |
+
+The decisions each model makes at its chosen threshold (see
+[Decision threshold](#decision-threshold)). Predicting that nobody churns scores accuracy 0.796.
+
+| Model | Threshold | Precision | Recall | F1 | Accuracy |
+|---|---|---|---|---|---|
+| Logistic regression | 0.26 | 0.453 | 0.595 | 0.514 | 0.771 |
+| Gradient boosting | 0.39 | 0.695 | 0.560 | 0.620 | 0.861 |
+| Neural network (MLP) | 0.39 | 0.722 | 0.548 | 0.623 | 0.865 |
 
 Produced with seed 42 on an Apple M1 laptop (CPU, Python 3.12, the versions in `uv.lock`) by:
 
@@ -51,25 +60,31 @@ What the numbers say:
 
 ## How it works
 
-**Features.** The model uses the ten customer attributes: credit score, country, gender, age,
+### Features
+
+The model uses the ten customer attributes: credit score, country, gender, age,
 tenure, balance, number of products, has a credit card, is an active member, and estimated
 salary. The identifier columns `RowNumber`, `CustomerId` and `Surname` are dropped. They say
 nothing about how a customer behaves, so a model could only use them to memorise individual
 rows (surnames) or to pick up quirks of how the file was ordered (row numbers and IDs), and
 neither would carry over to new customers.
 
-**Preprocessing.** One scikit-learn `ColumnTransformer`, shared by all three models: numeric
+### Preprocessing
+
+One scikit-learn `ColumnTransformer`, shared by all three models: numeric
 columns are standardised, country and gender are one-hot encoded, and the two 0/1 flags pass
 through unchanged. It's fitted on the training split only, so nothing about the validation or
 test rows leaks into it. A country never seen in training encodes as all zeros instead of
 crashing.
 
-**Splits.** The data is split once, stratified on the churn label so every part keeps the 20%
+### Splits
+
+The data is split once, stratified on the churn label so every part keeps the 20%
 churn rate: 20% held out as the test set, then 20% of the rest as the validation set
 (1,600 rows), leaving 6,400 rows for training. The split is fixed by the seed, and `evaluate`
 rebuilds it from the seed saved with each model.
 
-**Models.**
+### Models
 
 - Logistic regression (`LogisticRegression`, default regularisation).
 - Gradient boosting (`HistGradientBoostingClassifier`, learning rate 0.05, up to 500 trees with
@@ -79,7 +94,9 @@ rebuilds it from the seed saved with each model.
   decay 0.0001) on binary cross-entropy in batches of 64, and stops after 15 epochs without
   improvement on a 15% early-stopping split of the training rows, keeping the best weights.
 
-**Class imbalance.** Only one customer in five churns. The project handles that by stratifying
+### Class imbalance
+
+Only one customer in five churns. The project handles that by stratifying
 every split, by reporting PR-AUC next to the base rate (PR-AUC measures how well the churners
 are found and, unlike ROC-AUC, gets harder as they get rarer), and by choosing the decision
 threshold explicitly instead of using 0.5. The models are trained without class weights. A one-off check
@@ -88,14 +105,18 @@ improve the ranking (ROC-AUC 0.757 to 0.762 for logistic regression, 0.865 to 0.
 gradient boosting) and pushed the average predicted probability from 0.20 to about 0.4, so the
 outputs would no longer read as churn probabilities.
 
-**Decision threshold.** A customer is predicted to churn when their churn probability is at or
+### Decision threshold
+
+A customer is predicted to churn when their churn probability is at or
 above the model's threshold. Each model's threshold is the one that maximises F1 for the churn
 class on the validation split, which balances catching churners (recall) against flagging
 customers who would have stayed (precision). With a 20% base rate, a 0.5 cut-off flags too few
 customers. The thresholds come out at 0.26 to 0.39. If missing a churner costs more than a
 wasted retention offer, pass a lower `--threshold` to `predict`.
 
-**Why PyTorch.** The original project used Keras with the TensorFlow backend. PyTorch is used
+### Why PyTorch
+
+The original project used Keras with the TensorFlow backend. PyTorch is used
 here because it's the mainstream deep learning library today, installs as one wheel with no
 separate backend, and runs on the CPU or on Apple Silicon (MPS) with the same code. The network
 is wrapped as a scikit-learn estimator, so it slots into the same pipeline as the baselines.
@@ -113,7 +134,7 @@ git clone https://github.com/MSJawad/ANeuralNet-Bank-Solutions.git
 cd ANeuralNet-Bank-Solutions
 uv sync
 uv run bank-churn train      # fits all three models and saves them in models/
-uv run bank-churn evaluate   # prints the results table above
+uv run bank-churn evaluate   # prints the results tables above
 ```
 
 Without uv, `python3.12 -m venv .venv && .venv/bin/pip install -e .` also works (on Linux, add
@@ -178,6 +199,7 @@ src/bank_churn/
   cli.py          the bank-churn command
 tests/            unit and CLI tests on small synthetic data (no dataset or GPU needed)
 data/             the dataset
+examples/         sample input for predict
 docs/curves.png   the figure above
 ```
 
@@ -188,7 +210,7 @@ uv run pytest               # about 20 seconds
 uv run ruff check && uv run ruff format --check
 ```
 
-CI runs the same lint and tests on every push and pull request.
+CI runs the same lint and tests on pushes to master and on pull requests.
 
 ## History
 
