@@ -1,5 +1,7 @@
 # Bank customer churn prediction
 
+[![CI](https://github.com/MSJawad/ANeuralNet-Bank-Solutions/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/MSJawad/ANeuralNet-Bank-Solutions/actions/workflows/ci.yml)
+
 Predicts which customers of a bank are about to close their accounts, from a 10,000-row tabular
 dataset. Two simple baselines (logistic regression and gradient boosting, in scikit-learn) are
 compared against a small PyTorch neural network, using the same preprocessing pipeline, a
