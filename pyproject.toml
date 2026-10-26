@@ -1,0 +1,53 @@
+[project]
+name = "bank-churn"
+version = "1.0.0"
+description = "Bank customer churn prediction: scikit-learn baselines compared with a small PyTorch neural network."
+readme = "README.md"
+authors = [{ name = "Solaiman Jawad" }]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "joblib==1.6.0",
+    "matplotlib==3.11.2",
+    "numpy==2.5.4",
+    "pandas==3.0.6",
+    "scikit-learn==1.9.1",
+    "torch==2.14.1",
+]
+
+[project.scripts]
+bank-churn = "bank_churn.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+    "ruff==0.17.0",
+]
+
+[build-system]
+requires = ["hatchling==1.32.4"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+# Resolve only releases that have been public for a while, so the lock file is reproducible.
+exclude-newer = "2026-10-12T00:00:00Z"
+
+# Linux (CI) gets the CPU-only PyTorch wheel instead of the multi-gigabyte CUDA build.
+# macOS uses the default PyPI wheel, which supports both CPU and Apple MPS.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "NPY"]
