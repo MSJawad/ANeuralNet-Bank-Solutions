@@ -25,9 +25,7 @@ DEFAULT_SEED = 42
 def cmd_train(args: argparse.Namespace) -> None:
     names = MODEL_NAMES if args.model == "all" else (args.model,)
     for name in names:
-        model = train_model(
-            name, args.data, seed=args.seed, device=args.device, max_epochs=args.max_epochs
-        )
+        model = train_model(name, args.data, seed=args.seed, max_epochs=args.max_epochs)
         path = args.out_dir / f"{name}.joblib"
         model.save(path)
         m = model.validation_metrics
@@ -103,12 +101,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     train.add_argument("--out-dir", type=Path, default=DEFAULT_MODEL_DIR)
     train.add_argument("--seed", type=int, default=DEFAULT_SEED, help="split and training seed")
-    train.add_argument(
-        "--device",
-        default="cpu",
-        help="PyTorch device for the neural network: cpu (default, reproducible), mps, cuda "
-        "or auto",
-    )
     train.add_argument("--max-epochs", type=int, default=200, help="neural network epoch cap")
     train.set_defaults(func=cmd_train)
 

@@ -66,13 +66,11 @@ def library_versions() -> dict[str, str]:
     }
 
 
-def train_model(
-    name: str, data_path: Path, seed: int, device: str = "cpu", max_epochs: int = 200
-) -> TrainedModel:
+def train_model(name: str, data_path: Path, seed: int, max_epochs: int = 200) -> TrainedModel:
     """Fit ``name`` on the training split and pick its threshold on the validation split."""
     X, y = load_dataset(data_path)
     split = split_dataset(X, y, seed=seed)
-    pipeline = make_pipeline(name, seed=seed, device=device, max_epochs=max_epochs)
+    pipeline = make_pipeline(name, seed=seed, max_epochs=max_epochs)
     started = time.perf_counter()
     pipeline.fit(split.X_train, split.y_train)
     train_seconds = time.perf_counter() - started

@@ -1,12 +1,6 @@
 import pytest
 
-from bank_churn.data import (
-    FEATURES,
-    IDENTIFIER_COLUMNS,
-    load_dataset,
-    load_features,
-    split_dataset,
-)
+from bank_churn.data import FEATURES, IDENTIFIER_COLUMNS, load_dataset, split_dataset
 from bank_churn.models import make_preprocessor
 
 
@@ -29,14 +23,8 @@ def test_load_dataset_rejects_missing_values(tmp_path, customers):
     customers.loc[3, "Balance"] = None
     path = tmp_path / "gaps.csv"
     customers.to_csv(path, index=False)
-    with pytest.raises(ValueError, match="missing values"):
+    with pytest.raises(ValueError, match="missing values in columns: Balance"):
         load_dataset(path)
-
-
-def test_load_features_does_not_need_the_target(tmp_path, customers):
-    path = tmp_path / "new.csv"
-    customers.drop(columns=["Exited"]).to_csv(path, index=False)
-    assert list(load_features(path).columns) == FEATURES
 
 
 def test_split_is_stratified_disjoint_and_reproducible(customers_csv):

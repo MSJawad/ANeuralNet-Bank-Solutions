@@ -117,12 +117,10 @@ wasted retention offer, pass a lower `--threshold` to `predict`.
 ### Why PyTorch
 
 The original project used Keras with the TensorFlow backend. PyTorch is used
-here because it's the mainstream deep learning library today, installs as one wheel with no
-separate backend, and runs on the CPU or on Apple Silicon (MPS) with the same code. The network
-is wrapped as a scikit-learn estimator, so it slots into the same pipeline as the baselines.
-Training defaults to the CPU because the data is tiny (the CPU is faster than MPS here) and CPU
-runs repeat exactly with the same seed. `--device mps` works, but gives slightly different
-numbers.
+here because it's the mainstream deep learning library today and installs as one wheel with no
+separate backend. The network is wrapped as a scikit-learn estimator, so it slots into the same
+pipeline as the baselines. Training runs on the CPU because the data is tiny (the CPU is faster
+than a GPU or Apple's MPS here) and CPU runs repeat exactly with the same seed.
 
 ## Quick start
 
@@ -145,7 +143,7 @@ PyTorch). The versions in `pyproject.toml` are pinned, but only uv uses the full
 
 ```text
 bank-churn train     [--data CSV] [--model logreg|gboost|mlp|all] [--out-dir DIR] [--seed N]
-                     [--device cpu|mps|cuda|auto] [--max-epochs N]
+                     [--max-epochs N]
 bank-churn evaluate  [MODEL ...] [--data CSV] [--bootstrap N] [--plot PNG] [--json FILE]
 bank-churn predict   --model MODEL --input CSV [--output CSV] [--threshold P]
 ```

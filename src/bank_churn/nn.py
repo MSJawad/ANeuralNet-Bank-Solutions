@@ -41,16 +41,6 @@ def train_step(
     return loss.item()
 
 
-def resolve_device(device: str) -> torch.device:
-    if device == "auto":
-        if torch.cuda.is_available():
-            return torch.device("cuda")
-        if torch.backends.mps.is_available():
-            return torch.device("mps")
-        return torch.device("cpu")
-    return torch.device(device)
-
-
 class TorchMLPClassifier(ClassifierMixin, BaseEstimator):
     """Binary classifier trained with Adam on binary cross-entropy, with early stopping.
 
@@ -69,7 +59,6 @@ class TorchMLPClassifier(ClassifierMixin, BaseEstimator):
         max_epochs: int = 200,
         patience: int = 15,
         validation_fraction: float = 0.15,
-        device: str = "cpu",
         random_state: int = 0,
     ):
         self.hidden_sizes = hidden_sizes
@@ -80,7 +69,6 @@ class TorchMLPClassifier(ClassifierMixin, BaseEstimator):
         self.max_epochs = max_epochs
         self.patience = patience
         self.validation_fraction = validation_fraction
-        self.device = device
         self.random_state = random_state
 
     def fit(self, X, y):
@@ -93,7 +81,6 @@ class TorchMLPClassifier(ClassifierMixin, BaseEstimator):
 
         torch.manual_seed(self.random_state)
         generator = torch.Generator().manual_seed(self.random_state)
-        device = resolve_device(self.device)
 
         X_fit, X_stop, y_fit, y_stop = train_test_split(
             X,
@@ -103,10 +90,9 @@ class TorchMLPClassifier(ClassifierMixin, BaseEstimator):
             random_state=self.random_state,
         )
         x_fit, t_fit = torch.from_numpy(X_fit), torch.from_numpy(y_fit)
-        x_stop = torch.from_numpy(X_stop).to(device)
-        t_stop = torch.from_numpy(y_stop).to(device)
+        x_stop, t_stop = torch.from_numpy(X_stop), torch.from_numpy(y_stop)
 
-        model = MLP(X.shape[1], tuple(self.hidden_sizes), self.dropout).to(device)
+        model = MLP(X.shape[1], tuple(self.hidden_sizes), self.dropout)
         optimizer = torch.optim.Adam(
             model.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay
         )
@@ -122,13 +108,7 @@ class TorchMLPClassifier(ClassifierMixin, BaseEstimator):
             for start in range(0, len(order), self.batch_size):
                 batch = order[start : start + self.batch_size]
                 train_losses.append(
-                    train_step(
-                        model,
-                        optimizer,
-                        loss_fn,
-                        x_fit[batch].to(device),
-                        t_fit[batch].to(device),
-                    )
+                    train_step(model, optimizer, loss_fn, x_fit[batch], t_fit[batch])
                 )
             model.eval()
             with torch.no_grad():
@@ -138,15 +118,13 @@ class TorchMLPClassifier(ClassifierMixin, BaseEstimator):
             )
             if stop_loss < best_loss:
                 best_loss = stop_loss
-                best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+                best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
                 epochs_without_improvement = 0
             else:
                 epochs_without_improvement += 1
                 if epochs_without_improvement >= self.patience:
                     break
 
-        # Keep the fitted network on the CPU so a saved model loads on any machine.
-        model = model.cpu()
         model.load_state_dict(best_state)
         model.eval()
         self.model_ = model

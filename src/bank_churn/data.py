@@ -46,9 +46,13 @@ def file_sha256(path: Path) -> str:
 
 
 def require_columns(frame: pd.DataFrame, columns: list[str]) -> None:
+    """Fail unless every column is present and has no missing values."""
     missing = [column for column in columns if column not in frame.columns]
     if missing:
         raise ValueError(f"missing required columns: {', '.join(missing)}")
+    blank = [column for column in columns if frame[column].isna().any()]
+    if blank:
+        raise ValueError(f"missing values in columns: {', '.join(blank)}")
 
 
 def load_dataset(path: Path) -> tuple[pd.DataFrame, pd.Series]:
@@ -58,19 +62,10 @@ def load_dataset(path: Path) -> tuple[pd.DataFrame, pd.Series]:
     """
     frame = pd.read_csv(path)
     require_columns(frame, FEATURES + [TARGET])
-    if frame[FEATURES + [TARGET]].isna().any().any():
-        raise ValueError("the dataset contains missing values")
     y = frame[TARGET].astype(int)
     if not set(y.unique()) <= {0, 1}:
         raise ValueError(f"{TARGET} must contain only 0 and 1")
     return frame[FEATURES].copy(), y
-
-
-def load_features(path: Path) -> pd.DataFrame:
-    """Read customers to score. Extra columns, such as identifiers, are ignored."""
-    frame = pd.read_csv(path)
-    require_columns(frame, FEATURES)
-    return frame[FEATURES].copy()
 
 
 def split_dataset(

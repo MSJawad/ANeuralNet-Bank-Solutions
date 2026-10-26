@@ -1,3 +1,4 @@
+import io
 import json
 
 import pandas as pd
@@ -91,7 +92,7 @@ def test_predict_threshold_override_and_stdout(trained, customers_csv, capsys):
         ["predict", "--model", str(trained / "mlp.joblib"), "--input", str(customers_csv)]
         + ["--threshold", "0"]
     )
-    predictions = pd.read_csv(pd.io.common.StringIO(capsys.readouterr().out))
+    predictions = pd.read_csv(io.StringIO(capsys.readouterr().out))
     assert len(predictions) == 600
     assert (predictions["churn_predicted"] == 1).all()
 
@@ -101,6 +102,15 @@ def test_predict_reports_missing_columns(trained, tmp_path):
     pd.DataFrame([{"Age": 40}]).to_csv(customers, index=False)
     with pytest.raises(SystemExit, match="missing required columns"):
         main(["predict", "--model", str(trained / "logreg.joblib"), "--input", str(customers)])
+
+
+def test_predict_reports_missing_values(trained, tmp_path):
+    customers = tmp_path / "gaps.csv"
+    pd.DataFrame([COURSE_EXAMPLE, {**COURSE_EXAMPLE, "Balance": None}]).to_csv(
+        customers, index=False
+    )
+    with pytest.raises(SystemExit, match="missing values in columns: Balance"):
+        main(["predict", "--model", str(trained / "mlp.joblib"), "--input", str(customers)])
 
 
 def test_missing_data_file_is_a_clean_error(tmp_path):
